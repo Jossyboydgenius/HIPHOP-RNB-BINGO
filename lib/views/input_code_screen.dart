@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:hiphop_rnb_bingo/services/game_service.dart';
+import 'package:hiphop_rnb_bingo/widgets/app_images.dart';
 import 'package:hiphop_rnb_bingo/widgets/app_sizer.dart';
+import 'package:hiphop_rnb_bingo/widgets/app_toast.dart';
+import '../app/locator.dart';
 import '../routes/app_routes.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_button.dart';
@@ -26,6 +31,8 @@ class InputCodeScreen extends StatefulWidget {
 class _InputCodeScreenState extends State<InputCodeScreen> {
   final TextEditingController _codeController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final GameService _gameService = locator<GameService>();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -41,21 +48,71 @@ class _InputCodeScreenState extends State<InputCodeScreen> {
     });
   }
 
-  void _handleCodeSubmission() {
+  void _showErrorToast(String message) {
+    AppToast.show(
+      context,
+      message,
+      showCloseIcon: true,
+      showInfoIcon: true,
+      infoIcon: AppImageData.info,
+      backgroundColor: AppColors.pinkBg,
+      borderColor: AppColors.pinkDark,
+      textColor: Colors.black54,
+    );
+  }
+
+  Future<void> _handleCodeSubmission() async {
     if (_codeController.text.length == 4) {
       final code = _codeController.text;
-      if (widget.isInPerson) {
-        Navigator.pushReplacementNamed(
-          context,
-          AppRoutes.gameDetails,
-          arguments: code,
-        );
-      } else {
-        Navigator.pushReplacementNamed(
-          context,
-          AppRoutes.remoteGameDetails,
-          arguments: code,
-        );
+
+      // Show loading indicator
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Try to fetch the game details using the code
+        final game = await _gameService.getGameByCode(code);
+
+        if (!mounted) return;
+
+        if (game != null) {
+          // Navigate based on game mode
+          if (widget.isInPerson && !game.isRemote) {
+            // In-person game
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.gameDetails,
+              arguments: code,
+            );
+          } else if (!widget.isInPerson && game.isRemote) {
+            // Remote online game
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.remoteGameDetails,
+              arguments: code,
+            );
+          } else {
+            // Mode mismatch - show error
+            _showErrorToast(widget.isInPerson
+                ? 'This is an online game! Please join from the online section.'
+                : 'This is an in-person game! Please join from the in-person section.');
+          }
+        } else {
+          // Invalid code
+          _showErrorToast(
+              'Invalid game code! Please try again with a valid game code.');
+        }
+      } catch (e) {
+        // Error during API call
+        _showErrorToast('Error: ${e.toString()}');
+      } finally {
+        // Hide loading indicator if component is still mounted
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -106,9 +163,7 @@ class _InputCodeScreenState extends State<InputCodeScreen> {
                                     EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 20.h),
                                 child: Container(
                                   width: AppDimension.isSmall ? 380.w : 320.w,
-                                  // height: AppDimension.isSmall ? 160.h : 120.h,
                                   padding: EdgeInsets.symmetric(
-                                    // horizontal: AppDimension.isSmall ? 16.w : 20.w,
                                     vertical:
                                         AppDimension.isSmall ? 16.h : 12.h,
                                   ),
@@ -140,32 +195,41 @@ class _InputCodeScreenState extends State<InputCodeScreen> {
                               ),
                             ),
                             SizedBox(height: 30.h),
-                            AppButton(
-                              text: 'Enter',
-                              textStyle: AppTextStyle.poppins(
-                                fontSize: AppDimension.isSmall ? 18.sp : 18.sp,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                              fillColor: _codeController.text.length < 4
-                                  ? AppColors.grayDark
-                                  : AppColors.greenDark,
-                              layerColor: _codeController.text.length < 4
-                                  ? AppColors.grayLight
-                                  : AppColors.greenBright,
-                              borderColor: Colors.white,
-                              hasBorder: true,
-                              height: AppDimension.isSmall ? 65.h : 50.h,
-                              width: AppDimension.isSmall ? 140.w : 140.w,
-                              layerHeight: AppDimension.isSmall ? 52.h : 42.h,
-                              layerTopPosition: -3.h,
-                              borderRadius: AppDimension.isSmall ? 26.r : 16.r,
-                              borderWidth: AppDimension.isSmall ? 3.w : 3.w,
-                              nullTextColor: Colors.black,
-                              onPressed: _codeController.text.length == 4
-                                  ? _handleCodeSubmission
-                                  : null,
-                            ),
+                            _isLoading
+                                ? SpinKitCubeGrid(
+                                    color: AppColors.yellowPrimary,
+                                    size: 50.w,
+                                  )
+                                : AppButton(
+                                    text: 'Enter',
+                                    textStyle: AppTextStyle.poppins(
+                                      fontSize:
+                                          AppDimension.isSmall ? 18.sp : 18.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                    fillColor: _codeController.text.length < 4
+                                        ? AppColors.grayDark
+                                        : AppColors.greenDark,
+                                    layerColor: _codeController.text.length < 4
+                                        ? AppColors.grayLight
+                                        : AppColors.greenBright,
+                                    borderColor: Colors.white,
+                                    hasBorder: true,
+                                    height: AppDimension.isSmall ? 65.h : 50.h,
+                                    width: AppDimension.isSmall ? 140.w : 140.w,
+                                    layerHeight:
+                                        AppDimension.isSmall ? 52.h : 42.h,
+                                    layerTopPosition: -3.h,
+                                    borderRadius:
+                                        AppDimension.isSmall ? 26.r : 16.r,
+                                    borderWidth:
+                                        AppDimension.isSmall ? 3.w : 3.w,
+                                    nullTextColor: Colors.black,
+                                    onPressed: _codeController.text.length == 4
+                                        ? _handleCodeSubmission
+                                        : null,
+                                  ),
                             SizedBox(
                                 height: AppDimension.isSmall ? 140.h : 110.h),
                           ],

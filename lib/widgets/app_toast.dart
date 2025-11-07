@@ -37,10 +37,11 @@ class AppToast extends StatefulWidget {
     Color? backgroundColor,
     Color? borderColor,
     String? infoIcon,
+    Duration duration = const Duration(seconds: 3),
   }) {
     OverlayState? overlay = Overlay.of(context);
     OverlayEntry? entry;
-    
+
     entry = OverlayEntry(
       builder: (context) => Positioned(
         top: MediaQuery.of(context).padding.top + 16,
@@ -56,6 +57,7 @@ class AppToast extends StatefulWidget {
             backgroundColor: backgroundColor,
             borderColor: borderColor,
             infoIcon: infoIcon,
+            duration: duration,
             onClose: () {
               entry?.remove();
             },
@@ -71,7 +73,8 @@ class AppToast extends StatefulWidget {
   State<AppToast> createState() => _AppToastState();
 }
 
-class _AppToastState extends State<AppToast> with SingleTickerProviderStateMixin {
+class _AppToastState extends State<AppToast>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -127,8 +130,7 @@ class _AppToastState extends State<AppToast> with SingleTickerProviderStateMixin
                     height: 24.h,
                     width: 24.w,
                   ),
-                if (widget.showInfoIcon)
-                  SizedBox(width: 12.w),
+                if (widget.showInfoIcon) SizedBox(width: 12.w),
                 Expanded(
                   child: Text(
                     widget.message,
@@ -155,4 +157,4 @@ class _AppToastState extends State<AppToast> with SingleTickerProviderStateMixin
       ),
     );
   }
-} 
+}

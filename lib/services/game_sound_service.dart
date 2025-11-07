@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:hiphop_rnb_bingo/widgets/app_sounds.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:haptic_feedback/haptic_feedback.dart';
 
 /// Service to manage all game sounds throughout the application
 class GameSoundService {
@@ -36,21 +36,13 @@ class GameSoundService {
 
     // Check if device can vibrate and has advanced haptics
     try {
-      _canVibrate = await Vibrate.canVibrate;
+      _canVibrate = await Haptics.canVibrate();
 
       // Check for iOS devices with CoreHaptics (iPhone 8 and newer)
       if (Platform.isIOS) {
-        // Different versions of flutter_vibrate have different method names
-        try {
-          _hasAdvancedHaptics = await Vibrate.canVibrate;
-          if (kDebugMode) {
-            print('iOS device supports haptic feedback: $_hasAdvancedHaptics');
-          }
-        } catch (e) {
-          _hasAdvancedHaptics = false;
-          if (kDebugMode) {
-            print('Error checking iOS haptics support: $e');
-          }
+        _hasAdvancedHaptics = await Haptics.canVibrate();
+        if (kDebugMode) {
+          print('iOS device supports haptic feedback: $_hasAdvancedHaptics');
         }
       }
 
@@ -69,8 +61,6 @@ class GameSoundService {
   void toggleSound() {
     _isSoundEnabled = !_isSoundEnabled;
 
-    // Remove automatic vibration since we handle it in the widget
-
     if (!_isSoundEnabled) {
       _effectsPlayer.stop();
       _backgroundPlayer.stop();
@@ -80,13 +70,11 @@ class GameSoundService {
   // Toggle vibration on/off
   void toggleVibrate() {
     _isVibrateEnabled = !_isVibrateEnabled;
-
-    // Remove automatic vibration since we handle it in the widget
   }
 
   // Check if vibration is available on the device
   Future<bool> checkVibrationAvailability() async {
-    bool canVibrate = await Vibrate.canVibrate;
+    bool canVibrate = await Haptics.canVibrate();
 
     // Additional check for iOS devices
     if (Platform.isIOS && canVibrate) {
@@ -108,7 +96,7 @@ class GameSoundService {
         // iOS specific haptic feedback
         if (_hasAdvancedHaptics) {
           // Use CoreHaptics-compatible feedback type
-          Vibrate.feedback(FeedbackType.selection);
+          await Haptics.vibrate(HapticsType.selection);
         } else {
           // Fallback for older iOS devices
           HapticFeedback.selectionClick();
@@ -119,13 +107,13 @@ class GameSoundService {
         }
       } else {
         // Android vibration
-        Vibrate.feedback(FeedbackType.light);
+        await Haptics.vibrate(HapticsType.light);
         if (kDebugMode) {
           print('Android light vibration triggered');
         }
       }
     } catch (e) {
-      // Fallback to built-in haptic feedback if flutter_vibrate fails
+      // Fallback to built-in haptic feedback if haptic_feedback fails
       try {
         // Use selection click which works well across platforms
         HapticFeedback.selectionClick();
@@ -150,7 +138,7 @@ class GameSoundService {
         // iOS specific haptic feedback
         if (_hasAdvancedHaptics) {
           // Use CoreHaptics-compatible feedback type
-          Vibrate.feedback(FeedbackType.warning);
+          await Haptics.vibrate(HapticsType.warning);
         } else {
           // Fallback for older iOS devices
           HapticFeedback.mediumImpact();
@@ -161,13 +149,13 @@ class GameSoundService {
         }
       } else {
         // Android vibration
-        Vibrate.feedback(FeedbackType.medium);
+        await Haptics.vibrate(HapticsType.medium);
         if (kDebugMode) {
           print('Android medium vibration triggered');
         }
       }
     } catch (e) {
-      // Fallback to built-in haptic feedback if flutter_vibrate fails
+      // Fallback to built-in haptic feedback if haptic_feedback fails
       try {
         HapticFeedback.mediumImpact();
         if (kDebugMode) {
@@ -191,7 +179,7 @@ class GameSoundService {
         // iOS specific haptic feedback
         if (_hasAdvancedHaptics) {
           // Use CoreHaptics-compatible feedback type
-          Vibrate.feedback(FeedbackType.error);
+          await Haptics.vibrate(HapticsType.error);
         } else {
           // Fallback for older iOS devices
           HapticFeedback.heavyImpact();
@@ -202,13 +190,13 @@ class GameSoundService {
         }
       } else {
         // Android vibration
-        Vibrate.feedback(FeedbackType.heavy);
+        await Haptics.vibrate(HapticsType.heavy);
         if (kDebugMode) {
           print('Android heavy vibration triggered');
         }
       }
     } catch (e) {
-      // Fallback to built-in haptic feedback if flutter_vibrate fails
+      // Fallback to built-in haptic feedback if haptic_feedback fails
       try {
         HapticFeedback.heavyImpact();
         if (kDebugMode) {
@@ -268,24 +256,16 @@ class GameSoundService {
           HapticFeedback.heavyImpact();
           break;
         case 'success':
-          // Success pattern - two light taps followed by one medium
-          HapticFeedback.selectionClick();
-          await Future.delayed(const Duration(milliseconds: 100));
-          HapticFeedback.selectionClick();
-          await Future.delayed(const Duration(milliseconds: 150));
-          HapticFeedback.mediumImpact();
+          // Success pattern - use haptics success pattern
+          await Haptics.vibrate(HapticsType.success);
           break;
         case 'error':
-          // Error pattern - one medium, short pause, one heavy
-          HapticFeedback.mediumImpact();
-          await Future.delayed(const Duration(milliseconds: 150));
-          HapticFeedback.heavyImpact();
+          // Error pattern - use haptics error pattern
+          await Haptics.vibrate(HapticsType.error);
           break;
         case 'warning':
-          // Warning pattern - one light, short pause, one medium
-          HapticFeedback.selectionClick();
-          await Future.delayed(const Duration(milliseconds: 150));
-          HapticFeedback.mediumImpact();
+          // Warning pattern - use haptics warning pattern
+          await Haptics.vibrate(HapticsType.warning);
           break;
         default:
           HapticFeedback.selectionClick();

@@ -38,6 +38,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final FacebookAuthService _facebookAuthService =
       locator<FacebookAuthService>();
 
+  // Temporary hardcoded token for development
+  final String _temporaryToken =
+      "dummy-token"; // This can be any string since we're not actually using it
+
   void _showModal(ModalType type) {
     setState(() {
       _currentModal = type;
@@ -85,6 +89,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
 
     try {
+      // Bypass actual Google login and use our hardcoded token
+      if (mounted) {
+        context.read<AuthBloc>().add(SignInWithGoogle(_temporaryToken));
+      }
+
+      /* Original implementation - commented out
       final token = await _googleAuthService.signIn();
 
       if (token != null && mounted) {
@@ -96,19 +106,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           );
         }
       }
+      */
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Google sign-in error: ${e.toString()}')),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+
+      setState(() {
+        _isLoading = false;
+      });
     }
+    // We don't set _isLoading to false here, as the BlocListener will handle it on successful auth
   }
 
   Future<void> _handleAppleSignIn() async {
@@ -117,6 +127,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
 
     try {
+      // Bypass actual Apple login and use our hardcoded token
+      if (mounted) {
+        context.read<AuthBloc>().add(SignInWithApple(_temporaryToken));
+      }
+
+      /* Original implementation - commented out
       final token = await _appleAuthService.signIn();
 
       if (token != null && mounted) {
@@ -128,28 +144,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           );
         }
       }
+      */
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Apple sign-in error: ${e.toString()}')),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+
+      setState(() {
+        _isLoading = false;
+      });
     }
+    // We don't set _isLoading to false here, as the BlocListener will handle it on successful auth
   }
 
-  // TODO: Implement Facebook authentication
   Future<void> _handleFacebookSignIn() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Bypass actual Facebook login and use our hardcoded token
+      if (mounted) {
+        context.read<AuthBloc>().add(SignInWithFacebook(_temporaryToken));
+      }
+
+      /* Original implementation - commented out
       final token = await _facebookAuthService.signIn();
 
       if (token != null && mounted) {
@@ -157,24 +178,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Facebook sign-in cancelled or failed')),
+            const SnackBar(content: Text('Facebook sign-in cancelled or failed')),
           );
         }
       }
+      */
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Facebook sign-in error: ${e.toString()}')),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+
+      setState(() {
+        _isLoading = false;
+      });
     }
+    // We don't set _isLoading to false here, as the BlocListener will handle it on successful auth
   }
 
   Widget _buildModalContent(ModalType type) {

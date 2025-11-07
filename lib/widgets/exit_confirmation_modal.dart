@@ -31,7 +31,7 @@ class ExitConfirmationModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final _soundService = GameSoundService();
+    final soundService = GameSoundService();
 
     return Container(
       color: Colors.black54,
@@ -57,7 +57,7 @@ class ExitConfirmationModal extends StatelessWidget {
                   color: Colors.white,
                 ),
                 onClose: () {
-                  _soundService.playButtonClick();
+                  soundService.playButtonClick();
                   Navigator.of(context).pop(); // Close modal
                   onClose();
                 },
@@ -102,7 +102,7 @@ class ExitConfirmationModal extends StatelessWidget {
                           borderWidth: 2,
                           borderColor: Colors.white,
                           onPressed: () {
-                            _soundService.playButtonClick();
+                            soundService.playButtonClick();
                             if (exitApp) {
                               // Exit the app
                               SystemNavigator.pop();
@@ -134,7 +134,7 @@ class ExitConfirmationModal extends StatelessWidget {
                           borderColor: Colors.white,
                           borderWidth: 2,
                           onPressed: () {
-                            _soundService.playButtonClick();
+                            soundService.playButtonClick();
                             Navigator.of(context).pop(); // Close modal
                             onClose();
                           },

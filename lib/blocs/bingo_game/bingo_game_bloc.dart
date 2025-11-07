@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'dart:async';
 import 'dart:math';
 import 'bingo_game_event.dart';
 import 'bingo_game_state.dart';
@@ -46,11 +45,6 @@ class BingoGameBloc extends Bloc<BingoGameEvent, BingoGameState> {
       'blackoutBingo',
     ];
     return patterns[Random().nextInt(patterns.length)];
-  }
-
-  @override
-  Future<void> close() {
-    return super.close();
   }
 
   // Shuffle to a new pattern different from the current one

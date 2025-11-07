@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
 import '../services/apple_auth_service.dart';
 import '../services/facebook_auth_service.dart';
+import '../services/game_service.dart';
 import '../data/services/local_storage_service.dart';
 import 'flavor_config.dart';
 
@@ -35,6 +36,9 @@ void _registerServices() {
   if (!locator.isRegistered<LocalStorageService>()) {
     locator.registerLazySingleton<LocalStorageService>(
         () => LocalStorageService());
+  }
+  if (!locator.isRegistered<GameService>()) {
+    locator.registerLazySingleton<GameService>(() => GameService());
   }
 }
 

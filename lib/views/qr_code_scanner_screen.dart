@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
+import '../app/locator.dart';
+import '../services/game_service.dart';
+import '../widgets/app_colors.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/app_images.dart';
 import '../widgets/app_text_style.dart';
@@ -23,16 +27,40 @@ class QRCodeScannerScreen extends StatefulWidget {
 class _QRCodeScannerScreenState extends State<QRCodeScannerScreen>
     with WidgetsBindingObserver {
   bool _isTorchOn = false;
+  bool _isProcessing = false;
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  final MobileScannerController cameraController = MobileScannerController();
+  late MobileScannerController cameraController;
   final ImagePicker _imagePicker = ImagePicker();
   final ml_kit.BarcodeScanner _barcodeScanner =
       ml_kit.GoogleMlKit.vision.barcodeScanner();
+  final GameService _gameService = locator<GameService>();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initializeCameraController();
+  }
+
+  void _initializeCameraController() {
+    cameraController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+      torchEnabled: _isTorchOn,
+    );
+  }
+
+  void _resetScanner() {
+    if (_isProcessing) {
+      setState(() {
+        _isProcessing = false;
+      });
+
+      // Dispose and reinitialize camera controller to ensure scanner works again
+      cameraController.dispose();
+      _initializeCameraController();
+      cameraController.start();
+    }
   }
 
   @override
@@ -64,35 +92,92 @@ class _QRCodeScannerScreenState extends State<QRCodeScannerScreen>
     });
   }
 
-  void _handleScannedCode(String? code) {
-    if (code != null) {
+  Future<void> _handleScannedCode(String? code) async {
+    if (code != null && !_isProcessing) {
       debugPrint('QR Code found: $code');
 
-      // Show custom toast with info icon but no close button
+      // Set processing state to prevent multiple scans
+      setState(() {
+        _isProcessing = true;
+      });
+
+      // Show loading toast
       AppToast.show(
         context,
         'QR Code detected! Processing game information...',
         showCloseIcon: false,
       );
 
-      // Navigate to appropriate screen based on mode
-      if (widget.isInPerson) {
-        Navigator.pushReplacementNamed(
-          context,
-          AppRoutes.gameDetails,
-          arguments: code,
-        );
-      } else {
-        Navigator.pushReplacementNamed(
-          context,
-          AppRoutes.remoteGameDetails,
-          arguments: code,
-        );
+      try {
+        // Validate the game code by fetching game details
+        final game = await _gameService.getGameByCode(code);
+
+        if (!mounted) return;
+
+        if (game != null) {
+          // Check if game mode matches the scanner mode (in-person or remote)
+          if ((widget.isInPerson && !game.isRemote) ||
+              (!widget.isInPerson && game.isRemote)) {
+            // Navigate to appropriate screen based on mode
+            if (widget.isInPerson) {
+              Navigator.pushReplacementNamed(
+                context,
+                AppRoutes.gameDetails,
+                arguments: code,
+              );
+            } else {
+              Navigator.pushReplacementNamed(
+                context,
+                AppRoutes.remoteGameDetails,
+                arguments: code,
+              );
+            }
+          } else {
+            // Wrong game mode - show error and reset processing
+            _showErrorToast(widget.isInPerson
+                ? 'This is an online game! Please scan from the online section.'
+                : 'This is an in-person game! Please scan from the in-person section.');
+
+            // Reset the scanner after a short delay to allow the toast to be visible
+            Future.delayed(const Duration(milliseconds: 1500), _resetScanner);
+          }
+        } else {
+          // Game not found - show error and reset processing
+          _showErrorToast(
+              'Game not found! Please try again with a valid QR code.');
+
+          // Reset the scanner after a short delay to allow the toast to be visible
+          Future.delayed(const Duration(milliseconds: 1500), _resetScanner);
+        }
+      } catch (e) {
+        debugPrint('Error validating game code: $e');
+        if (!mounted) return;
+
+        _showErrorToast('Error processing QR code. Please try again.');
+
+        // Reset the scanner after a short delay to allow the toast to be visible
+        Future.delayed(const Duration(milliseconds: 1500), _resetScanner);
       }
     }
   }
 
+  void _showErrorToast(String message) {
+    AppToast.show(
+      context,
+      message,
+      showCloseIcon: true,
+      showInfoIcon: true,
+      infoIcon: AppImageData.info,
+      backgroundColor: AppColors.pinkBg,
+      borderColor: AppColors.pinkDark,
+      textColor: Colors.black54,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
   Future<void> _pickImage() async {
+    if (_isProcessing) return;
+
     try {
       final XFile? image =
           await _imagePicker.pickImage(source: ImageSource.gallery);
@@ -109,21 +194,15 @@ class _QRCodeScannerScreenState extends State<QRCodeScannerScreen>
           }
         } else {
           if (!mounted) return;
-          AppToast.show(
-            context,
-            'No QR code found in the selected image',
-            showCloseIcon: false,
-          );
+          _showErrorToast('No QR code found in the selected image.');
+          _resetScanner();
         }
       }
     } catch (e) {
       debugPrint('Error scanning image: $e');
       if (!mounted) return;
-      AppToast.show(
-        context,
-        'Error scanning image. Please try again',
-        showCloseIcon: false,
-      );
+      _showErrorToast('Error scanning image. Please try again.');
+      _resetScanner();
     }
   }
 
@@ -141,17 +220,38 @@ class _QRCodeScannerScreenState extends State<QRCodeScannerScreen>
           child: Stack(
             children: [
               // QR Scanner with overlay
-              MobileScanner(
-                controller: cameraController,
-                onDetect: (capture) {
-                  final List<Barcode> barcodes = capture.barcodes;
-                  for (final barcode in barcodes) {
-                    if (!mounted) return;
-                    _handleScannedCode(barcode.rawValue);
-                    return;
-                  }
-                },
-              ),
+              _isProcessing
+                  ? SizedBox.expand(
+                      child: Container(
+                        color: Colors.black,
+                        child: const Center(
+                          child: SpinKitCubeGrid(
+                            color: AppColors.yellowPrimary,
+                            size: 50,
+                          ),
+                        ),
+                      ),
+                    )
+                  : MobileScanner(
+                      controller: cameraController,
+                      onDetect: (capture) {
+                        if (_isProcessing) return;
+                        final List<Barcode> barcodes = capture.barcodes;
+                        for (final barcode in barcodes) {
+                          if (!mounted) return;
+                          _handleScannedCode(barcode.rawValue);
+                          return;
+                        }
+                      },
+                      scanWindow: Rect.fromCenter(
+                        center: Offset(
+                          MediaQuery.of(context).size.width / 2,
+                          MediaQuery.of(context).size.height / 2,
+                        ),
+                        width: MediaQuery.of(context).size.width * 0.8,
+                        height: MediaQuery.of(context).size.width * 0.8,
+                      ),
+                    ),
 
               // Top Bar
               Padding(
@@ -186,62 +286,84 @@ class _QRCodeScannerScreenState extends State<QRCodeScannerScreen>
                 ),
               ),
 
-              // Bottom Controls
-              Positioned(
-                bottom: 48,
-                left: 0,
-                right: 0,
-                child: Center(
+              // Scan area overlay
+              if (!_isProcessing)
+                Center(
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 44, vertical: 6),
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    height: MediaQuery.of(context).size.width * 0.8,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      border: Border.all(
+                        color: AppColors.yellowPrimary.withOpacity(0.5),
+                        width: 2,
+                      ),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        GestureDetector(
-                          onTap: _pickImage,
-                          child: const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: AppIcons(
-                              icon: AppIconData.image,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 46),
-                        Container(
-                          height: 32,
-                          width: 2,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 46),
-                        GestureDetector(
-                          onTap: () async {
-                            try {
-                              await cameraController.toggleTorch();
-                              setState(() => _isTorchOn = !_isTorchOn);
-                            } catch (e) {
-                              debugPrint('Error toggling torch: $e');
-                            }
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Icon(
-                              _isTorchOn ? Icons.flash_on : Icons.flash_off,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: CustomPaint(
+                      painter: ScannerOverlayPainter(
+                        color: AppColors.yellowPrimary,
+                      ),
                     ),
                   ),
                 ),
-              ),
+
+              // Bottom Controls
+              if (!_isProcessing)
+                Positioned(
+                  bottom: 48,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 44, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: const Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: AppIcons(
+                                icon: AppIconData.image,
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 46),
+                          Container(
+                            height: 32,
+                            width: 2,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 46),
+                          GestureDetector(
+                            onTap: () async {
+                              try {
+                                await cameraController.toggleTorch();
+                                setState(() => _isTorchOn = !_isTorchOn);
+                              } catch (e) {
+                                debugPrint('Error toggling torch: $e');
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Icon(
+                                _isTorchOn ? Icons.flash_on : Icons.flash_off,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -262,8 +384,8 @@ class ScannerOverlayPainter extends CustomPainter {
       ..strokeWidth = 5
       ..style = PaintingStyle.stroke;
 
-    const double cornerLength = 60;
-    const double radius = 40;
+    const double cornerLength = 30;
+    const double radius = 20;
 
     // Top left corner
     canvas.drawPath(

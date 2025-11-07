@@ -7,7 +7,6 @@ import 'package:hiphop_rnb_bingo/services/game_sound_service.dart';
 import 'package:hiphop_rnb_bingo/widgets/app_colors.dart';
 import 'package:hiphop_rnb_bingo/widgets/app_images.dart';
 import 'package:hiphop_rnb_bingo/widgets/app_text_style.dart';
-import 'dart:ui';
 
 class WinningPatternDetailsModal extends StatelessWidget {
   final Map<String, Map<String, dynamic>> winningPatterns;

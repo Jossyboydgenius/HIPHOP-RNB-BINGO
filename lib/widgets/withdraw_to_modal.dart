@@ -150,7 +150,7 @@ class _WithdrawToModalState extends State<WithdrawToModal> {
                 ),
               ],
             ),
-            Container(
+            SizedBox(
               height: 32,
               child: TextButton(
                 onPressed: () {
@@ -160,7 +160,8 @@ class _WithdrawToModalState extends State<WithdrawToModal> {
                 },
                 style: TextButton.styleFrom(
                   backgroundColor: AppColors.blueLight2,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(100),
                   ),
@@ -226,9 +227,9 @@ class _WithdrawToModalState extends State<WithdrawToModal> {
             children: [
               AppModalContainer(
                 width: double.infinity,
-                height: selectedOption == null 
-                  ? (AppDimension.isSmall ? 580.h : 350.h)
-                  : (AppDimension.isSmall ? 780.h : 470.h),
+                height: selectedOption == null
+                    ? (AppDimension.isSmall ? 580.h : 350.h)
+                    : (AppDimension.isSmall ? 780.h : 470.h),
                 fillColor: AppColors.purplePrimary,
                 borderColor: AppColors.purpleLight,
                 layerColor: AppColors.purpleDark,
@@ -241,23 +242,27 @@ class _WithdrawToModalState extends State<WithdrawToModal> {
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: EdgeInsets.all(AppDimension.isSmall ? 24.r : 16.r),
+                        padding:
+                            EdgeInsets.all(AppDimension.isSmall ? 24.r : 16.r),
                         child: Column(
                           children: [
                             Expanded(
                               child: Container(
-                               width: double.infinity,
+                                width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(AppDimension.isSmall ? 20.r : 16.r),
+                                  borderRadius: BorderRadius.circular(
+                                      AppDimension.isSmall ? 20.r : 16.r),
                                 ),
                                 child: SingleChildScrollView(
                                   child: Padding(
-                                    padding: EdgeInsets.all(AppDimension.isSmall ? 24.r : 16.r),
+                                    padding: EdgeInsets.all(
+                                        AppDimension.isSmall ? 24.r : 16.r),
                                     child: selectedOption == null
                                         ? Column(
                                             children: paymentOptions.keys
-                                                .map((title) => _buildPaymentOption(title))
+                                                .map((title) =>
+                                                    _buildPaymentOption(title))
                                                 .toList(),
                                           )
                                         : _buildInputDetails(),
@@ -267,12 +272,14 @@ class _WithdrawToModalState extends State<WithdrawToModal> {
                             ),
                             if (selectedOption != null)
                               Padding(
-                                padding: EdgeInsets.only(top: AppDimension.isSmall ? 24.h : 16.h),
+                                padding: EdgeInsets.only(
+                                    top: AppDimension.isSmall ? 24.h : 16.h),
                                 child: Text(
                                   'Please verify your account carefully to ensure we can transfer money successfully',
                                   textAlign: TextAlign.center,
                                   style: AppTextStyle.dmSans(
-                                    fontSize: AppDimension.isSmall ? 12.sp : 12.sp,
+                                    fontSize:
+                                        AppDimension.isSmall ? 12.sp : 12.sp,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
@@ -287,7 +294,8 @@ class _WithdrawToModalState extends State<WithdrawToModal> {
               ),
               if (selectedOption != null)
                 Padding(
-                  padding: EdgeInsets.only(top: AppDimension.isSmall ? 46.h : 24.h),
+                  padding:
+                      EdgeInsets.only(top: AppDimension.isSmall ? 46.h : 24.h),
                   child: AppButton(
                     text: 'Confirm',
                     textStyle: AppTextStyle.poppins(
@@ -326,4 +334,4 @@ class _WithdrawToModalState extends State<WithdrawToModal> {
     _fullNameController.dispose();
     super.dispose();
   }
-} 
+}
