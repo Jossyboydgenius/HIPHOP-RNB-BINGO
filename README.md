@@ -186,4 +186,4 @@ For issues, questions, or contributions, please open an issue in the GitHub repo
 
 ---
 
-Built with ❤️ using Flutter
+Built with ❤️ using Flutter!
