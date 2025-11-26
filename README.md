@@ -1,4 +1,4 @@
-# 🎵 HipHop & RNB Bingo
+# 🎵 HipHop & RNB Bingo!
 
 A vibrant HipHop & RNB themed bingo game built with Flutter, featuring immersive animations, music, and multi-platform support.
 
