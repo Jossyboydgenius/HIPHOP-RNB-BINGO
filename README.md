@@ -62,7 +62,7 @@ A vibrant HipHop & RNB themed bingo game built with Flutter, featuring immersive
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/HIPHOP---RNB-BINGO.git
+   https://github.com/Jossyboydgenius/HIPHOP-RNB-BINGO.git
    cd HIPHOP---RNB-BINGO
    ```
 
